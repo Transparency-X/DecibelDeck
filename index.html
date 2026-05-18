@@ -1,1163 +1,554 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPL Meter - Real-time Sound Level Measurement</title>
+    <title>Pro SPL Meter & Logger</title>
     <style>
+        /* CSS Variables for Theming */
         :root {
-            --bg-primary: #1a1a2e;
-            --bg-secondary: #16213e;
-            --bg-card: #0f3460;
-            --text-primary: #eaeaea;
-            --text-secondary: #a0a0a0;
-            --accent: #e94560;
-            --accent-glow: rgba(233, 69, 96, 0.5);
-            --success: #4ecca3;
-            --warning: #ffc107;
-            --danger: #ff4444;
-            --border: #2a2a4a;
+            --bg-color: #111827;
+            --surface-color: #1f2937;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-color: #374151;
+            --accent: #10b981; 
+            --accent-hover: #059669;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --info: #3b82f6;
+            --info-hover: #2563eb;
+            --input-bg: #374151;
+            --table-header: #111827;
+            --table-row-hover: #374151;
+            --btn-bg: #374151;
+            --btn-hover: #4b5563;
+            --export-bg: #8b5cf6;
+            --export-hover: #7c3aed;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        [data-theme="light"] {
+            --bg-color: #f3f4f6;
+            --surface-color: #ffffff;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --accent: #10b981; 
+            --accent-hover: #059669;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --info: #3b82f6;
+            --info-hover: #2563eb;
+            --input-bg: #f9fafb;
+            --table-header: #f3f4f6;
+            --table-row-hover: #f9fafb;
+            --btn-bg: #f3f4f6;
+            --btn-hover: #e5e7eb;
         }
 
+        /* Base Styles */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            background: linear-gradient(135deg, var(--accent), var(--success));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-        }
-
-        .controls {
+            max-width: 950px;
+            width: 100%;
             display: flex;
-            gap: 15px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
-            align-items: center;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        .control-group {
+        /* Header */
+        .header {
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
+            padding: 10px 0;
         }
 
-        select, button {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
+        h1 { margin: 0; font-size: 1.8rem; display: flex; align-items: center; gap: 10px; }
+
+        .theme-toggle {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 20px;
             cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        select {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            min-width: 250px;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--accent-glow);
-        }
-
-        button {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            font-weight: 600;
-        }
-
-        button:hover {
-            background: var(--accent);
-            border-color: var(--accent);
-            transform: translateY(-2px);
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        button.stop {
-            background: var(--danger);
-            border-color: var(--danger);
-        }
-
-        button.stop:hover {
-            background: #ff6666;
-            border-color: #ff6666;
-        }
-
-        .status {
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            margin-left: auto;
-        }
-
-        .status.connected {
-            background: rgba(78, 204, 163, 0.2);
-            border: 1px solid var(--success);
-            color: var(--success);
-        }
-
-        .status.disconnected {
-            background: rgba(255, 68, 68, 0.2);
-            border: 1px solid var(--danger);
-            color: var(--danger);
-        }
-
-        .status.error {
-            background: rgba(255, 68, 68, 0.2);
-            border: 1px solid var(--danger);
-            color: var(--danger);
-        }
-
-        .meter-container {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 25px;
-            margin-bottom: 25px;
-        }
-
-        @media (max-width: 1000px) {
-            .meter-container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .current-reading {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 25px;
-            border: 1px solid var(--border);
-        }
-
-        .current-value {
-            font-size: 4rem;
-            font-weight: 700;
-            text-align: center;
-            margin: 20px 0;
-            background: linear-gradient(135deg, var(--accent), var(--success));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .current-label {
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-            margin-bottom: 10px;
-        }
-
-        .current-timestamp {
-            text-align: center;
-            color: var(--text-secondary);
             font-size: 0.9rem;
-        }
-
-        .gauge {
-            width: 100%;
-            height: 20px;
-            background: var(--bg-secondary);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 20px;
-            position: relative;
-        }
-
-        .gauge-fill {
-            height: 100%;
-            border-radius: 10px;
-            transition: width 0.3s ease;
-            position: relative;
-        }
-
-        .gauge-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 4px;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 0 10px 10px 0;
-        }
-
-        .gauge-labels {
+            font-weight: 600;
             display: flex;
-            justify-content: space-between;
-            margin-top: 5px;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
+            align-items: center;
+            gap: 8px;
         }
+        .theme-toggle:hover { background: var(--btn-hover); }
 
-        .data-table-container {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 25px;
-            border: 1px solid var(--border);
-            overflow-x: auto;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .data-table th,
-        .data-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .data-table th {
-            background: var(--bg-secondary);
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .data-table tr:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .value-instant { color: var(--accent); font-weight: 600; }
-        .value-1min { color: var(--success); font-weight: 600; }
-        .value-1hr { color: #4a90e2; font-weight: 600; }
-        .value-8hr { color: #9b59b6; font-weight: 600; }
-        .value-peak { color: var(--warning); font-weight: 600; }
-
-        .calibration-info {
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-            border-left: 4px solid var(--warning);
-            font-size: 0.9rem;
-        }
-
-        .calibration-info h3 {
-            margin-bottom: 10px;
-            color: var(--warning);
-            font-size: 1rem;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .stat-card {
-            background: var(--bg-card);
-            border-radius: 12px;
+        /* Cards */
+        .card {
+            background: var(--surface-color);
             padding: 20px;
-            border: 1px solid var(--border);
-        }
-
-        .stat-card h3 {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-        }
-
-        .stat-card .value {
-            font-size: 2rem;
-            font-weight: 700;
-        }
-
-        .stat-card .label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-top: 5px;
-        }
-
-        .chart-container {
-            background: var(--bg-card);
             border-radius: 12px;
-            padding: 25px;
-            border: 1px solid var(--border);
-            margin-bottom: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
         }
 
-        #splChart {
-            width: 100%;
-            height: 300px;
-        }
-
-        .settings-panel {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid var(--border);
-            margin-bottom: 25px;
-        }
-
-        .settings-panel h2 {
-            margin-bottom: 15px;
+        .card h2 {
+            margin-top: 0;
             font-size: 1.2rem;
-        }
-
-        .setting-row {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
         }
 
-        .setting-row label {
-            color: var(--text-secondary);
+        /* Forms & Inputs */
+        .controls-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .control-group { display: flex; flex-direction: column; }
+        .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        
+        label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        select, input[type="number"], input[type="text"] {
+            padding: 10px 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            width: 100%;
+            box-sizing: border-box;
         }
+        select:focus, input:focus { border-color: var(--accent); }
 
-        .setting-row input[type="range"] {
-            width: 200px;
+        /* Buttons */
+        .btn-small {
+            background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border-color);
+            padding: 4px 8px; font-size: 0.75rem; font-weight: 600; border-radius: 6px; cursor: pointer;
+            display: flex; align-items: center; gap: 4px;
         }
+        .btn-small:hover { background: var(--btn-hover); }
 
-        .setting-row input[type="number"] {
-            width: 80px;
-            padding: 5px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            color: var(--text-primary);
+        .button-group { display: flex; gap: 12px; align-items: center; }
+        
+        button.primary-btn {
+            padding: 10px 20px; font-size: 1rem; font-weight: 600; border: none; border-radius: 8px;
+            cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; flex: 1;
         }
+        button.primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .info-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
+        #startBtn { background-color: var(--accent); }
+        #startBtn:hover:not(:disabled) { background-color: var(--accent-hover); }
+        #stopBtn { background-color: var(--danger); }
+        #stopBtn:hover:not(:disabled) { background-color: var(--danger-hover); }
+        #clearBtn { background-color: var(--info); }
+        #clearBtn:hover:not(:disabled) { background-color: var(--info-hover); }
 
-        .badge-umik {
-            background: rgba(155, 89, 182, 0.2);
-            border: 1px solid #9b59b6;
-            color: #9b59b6;
+        .status-badge {
+            padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; text-align: center;
+            background: var(--input-bg); color: var(--text-muted); border: 1px solid var(--border-color);
         }
+        .status-badge.active { background: rgba(16, 185, 129, 0.1); color: var(--accent); border-color: var(--accent); animation: pulse 2s infinite; }
 
-        .badge-builtin {
-            background: rgba(74, 144, 226, 0.2);
-            border: 1px solid #4a90e2;
-            color: #4a90e2;
-        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
 
-        /* Animations */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; table-layout: fixed; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: var(--table-header); color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; }
+        tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background-color: var(--table-row-hover); }
+        td { font-size: 1.05rem; }
 
-        .pulse {
-            animation: pulse 2s ease-in-out infinite;
-        }
+        .db-val { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 700; color: var(--text-main); }
+        .db-val.leq { color: var(--accent); }
+        .mic-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem; color: var(--text-muted); cursor: help; }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 1.8rem;
-            }
-            
-            .current-value {
-                font-size: 2.5rem;
-            }
-            
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .control-group {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            select {
-                width: 100%;
-            }
-            
-            .status {
-                margin-left: 0;
-                text-align: center;
-            }
+        /* Export Bar */
+        .export-bar {
+            display: flex; gap: 10px; align-items: center; background: var(--input-bg); padding: 10px; border-radius: 8px; margin-bottom: 15px;
         }
+        
+        .export-btn {
+            background: var(--export-bg); color: white; border: none; padding: 8px 16px; font-weight: 600; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.9rem;
+        }
+        .export-btn:hover { background: var(--export-hover); }
+        
+        /* Pagination Logs */
+        .logs-wrapper { min-height: 400px; display: flex; flex-direction: column; justify-content: space-between; }
+        .pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); }
+        .pagination-btn-group { display: flex; gap: 5px; }
+        .page-btn { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 6px 12px; font-size: 0.9rem; border-radius: 6px; cursor: pointer; }
+        .page-btn:hover:not(:disabled) { background: var(--btn-hover); }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .page-info { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>SPL Meter</h1>
-            <p class="subtitle">Real-time Sound Pressure Level Measurement</p>
-        </header>
 
-        <div class="controls">
+<div class="container">
+    <div class="header">
+        <h1>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v20M17 5v14M7 5v14M22 8v8M2 8v8"/>
+            </svg>
+            Pro SPL Meter
+        </h1>
+        <button class="theme-toggle" id="themeToggle"><span id="themeIcon">☀️</span> <span id="themeText">Light Mode</span></button>
+    </div>
+
+    <!-- Controls -->
+    <div class="card">
+        <div class="controls-grid">
             <div class="control-group">
-                <select id="micSelect">
-                    <option value="">Select Microphone...</option>
-                </select>
-                <button id="startBtn">Start Measurement</button>
-                <button id="stopBtn" class="stop" disabled>Stop Measurement</button>
+                <div class="label-row"><label>Microphone Input</label></div>
+                <select id="micSelect"><option value="">Requesting permissions...</option></select>
             </div>
-            <div class="status disconnected" id="status">Disconnected</div>
-        </div>
-
-        <div class="meter-container">
-            <div class="current-reading">
-                <div class="current-label">Current SPL</div>
-                <div class="current-value" id="currentSpl">-- dB</div>
-                <div class="current-timestamp" id="currentTimestamp">--:--:--</div>
-                <div class="gauge">
-                    <div class="gauge-fill" id="gaugeFill" style="width: 0%; background: var(--accent);"></div>
+            <div class="control-group">
+                <div class="label-row">
+                    <label>Cal. Offset (dB)</label>
+                    <button id="uploadCalBtn" class="btn-small" title="Auto-set via .txt file">Auto-Set</button>
+                    <input type="file" id="calFileInput" accept=".txt,.cal" style="display: none;">
                 </div>
-                <div class="gauge-labels">
-                    <span>0 dB</span>
-                    <span>50 dB</span>
-                    <span>100 dB</span>
-                    <span>120 dB</span>
-                </div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Instant</h3>
-                    <div class="value" id="statInstant">-- dB</div>
-                    <div class="label">Real-time reading</div>
-                </div>
-                <div class="stat-card">
-                    <h3>1 Minute Avg</h3>
-                    <div class="value" id="stat1Min">-- dB</div>
-                    <div class="label">Leq(1min)</div>
-                </div>
-                <div class="stat-card">
-                    <h3>1 Hour Avg</h3>
-                    <div class="value" id="stat1Hr">-- dB</div>
-                    <div class="label">Leq(1hr)</div>
-                </div>
-                <div class="stat-card">
-                    <h3>8 Hour Avg</h3>
-                    <div class="value" id="stat8Hr">-- dB</div>
-                    <div class="label">Leq(8hr)</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Peak (1min)</h3>
-                    <div class="value" id="statPeak1Min">-- dB</div>
-                    <div class="label">Max in last minute</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Peak (All)</h3>
-                    <div class="value" id="statPeakAll">-- dB</div>
-                    <div class="label">Maximum recorded</div>
-                </div>
+                <input type="number" id="calibOffset" value="114.0" step="0.1">
             </div>
         </div>
-
-        <div class="chart-container">
-            <h2>SPL History (Last 5 minutes)</h2>
-            <canvas id="splChart"></canvas>
-        </div>
-
-        <div class="data-table-container">
-            <h2>Recent Readings</h2>
-            <table class="data-table" id="readingsTable">
-                <thead>
-                    <tr>
-                        <th>Timestamp</th>
-                        <th>Instant (dB)</th>
-                        <th>1 Min Avg (dB)</th>
-                        <th>1 Hr Avg (dB)</th>
-                        <th>8 Hr Avg (dB)</th>
-                        <th>Peak (dB)</th>
-                    </tr>
-                </thead>
-                <tbody id="readingsBody">
-                    <tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No data yet. Start measurement to see readings.</td></tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="calibration-info">
-            <h3>⚠️ Calibration Notice</h3>
-            <p><strong>UMIK-1:</strong> For accurate measurements with the UMIK-1, ensure it's selected as the input device. The UMIK-1 has a flat frequency response and comes with calibration data. This app uses a standard reference; for professional use, apply the UMIK-1's calibration file.</p>
-            <p><strong>Built-in Mic:</strong> MacBook microphones are not calibrated for SPL measurement. Readings will be relative and may not reflect true acoustic SPL values.</p>
-            <p><strong>Reference:</strong> This meter uses 20 μPa (0 dB SPL = 0.00002 Pa) as the reference pressure.</p>
+        <div class="button-group">
+            <button id="startBtn" class="primary-btn">Start</button>
+            <button id="stopBtn" class="primary-btn" disabled>Stop</button>
+            <button id="clearBtn" class="primary-btn">Clear</button>
+            <div id="status" class="status-badge">Stopped</div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        // ============================================
-        // Configuration
-        // ============================================
-        const CONFIG = {
-            fftSize: 2048,
-            smoothingTimeConstant: 0.8,
-            updateInterval: 100, // ms
-            maxHistory: 300, // 5 minutes at 100ms intervals
-            maxChartPoints: 300, // Max data points on chart
-            calibration: {
-                umik1: { offset: 128, label: 'UMIK-1' },
-                default: { offset: 94, label: 'Default' }
-            }
-        };
+    <!-- Averages -->
+    <div class="card">
+        <h2>Dashboard Averages</h2>
+        <table style="table-layout: auto;">
+            <thead><tr><th>Time Window</th><th>SPL (Leq)</th><th>Peak SPL</th><th>Last Update</th></tr></thead>
+            <tbody>
+                <tr id="row-instant"><td>Instant (~100ms)</td><td class="db-val leq">-- dB</td><td class="db-val">-- dB</td><td class="time" style="color: var(--text-muted); font-size: 0.9rem;">--:--:--</td></tr>
+                <tr id="row-1m"><td>1 Minute Loop</td><td class="db-val leq">-- dB</td><td class="db-val">-- dB</td><td class="time" style="color: var(--text-muted); font-size: 0.9rem;">--:--:--</td></tr>
+                <tr id="row-1h"><td>1 Hour Loop</td><td class="db-val leq">-- dB</td><td class="db-val">-- dB</td><td class="time" style="color: var(--text-muted); font-size: 0.9rem;">--:--:--</td></tr>
+                <tr id="row-8h"><td>8 Hours Loop</td><td class="db-val leq">-- dB</td><td class="db-val">-- dB</td><td class="time" style="color: var(--text-muted); font-size: 0.9rem;">--:--:--</td></tr>
+            </tbody>
+        </table>
+    </div>
 
-        // ============================================
-        // State
-        // ============================================
-        let audioContext;
-        let analyser;
-        let microphone;
-        let mediaStream;
-        let rafId;
-        let chart;
-        let chartLabels = [];
-        let chartDataInstant = [];
-        let chartData1Min = [];
-        let chartDataPeak = [];
-        
-        // Data storage
-        const readings = [];
-        const oneMinReadings = [];
-        const oneHourReadings = [];
-        const eightHourReadings = [];
-        
-        // Peak tracking
-        let peak1Min = -Infinity;
-        let peakAll = -Infinity;
-        let peak1MinResetTime = null;
-        
-        // ============================================
-        // DOM Elements
-        // ============================================
-        const micSelect = document.getElementById('micSelect');
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const statusEl = document.getElementById('status');
-        const currentSplEl = document.getElementById('currentSpl');
-        const currentTimestampEl = document.getElementById('currentTimestamp');
-        const gaugeFillEl = document.getElementById('gaugeFill');
-        const statInstantEl = document.getElementById('statInstant');
-        const stat1MinEl = document.getElementById('stat1Min');
-        const stat1HrEl = document.getElementById('stat1Hr');
-        const stat8HrEl = document.getElementById('stat8Hr');
-        const statPeak1MinEl = document.getElementById('statPeak1Min');
-        const statPeakAllEl = document.getElementById('statPeakAll');
-        const readingsBodyEl = document.getElementById('readingsBody');
-
-        // ============================================
-        // Initialization
-        // ============================================
-        async function init() {
-            try {
-                await loadMicrophones();
-                initChart();
-                setupEventListeners();
-                console.log('SPL Meter initialized successfully');
-            } catch (err) {
-                console.error('Initialization error:', err);
-                statusEl.textContent = 'Initialization Error';
-                statusEl.className = 'status error';
-            }
-        }
-
-        async function loadMicrophones() {
-            try {
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const mics = devices.filter(d => d.kind === 'audioinput');
-                
-                micSelect.innerHTML = '<option value="">Select Microphone...</option>';
-                
-                if (mics.length === 0) {
-                    const option = document.createElement('option');
-                    option.value = '';
-                    option.textContent = 'No microphones found';
-                    option.disabled = true;
-                    micSelect.appendChild(option);
-                    return;
-                }
-                
-                mics.forEach(mic => {
-                    const option = document.createElement('option');
-                    option.value = mic.deviceId;
-                    option.textContent = mic.label || `Microphone ${micSelect.length + 1}`;
-                    
-                    if (mic.label && mic.label.toLowerCase().includes('umik')) {
-                        option.innerHTML = `${mic.label} <span class="info-badge badge-umik">UMIK</span>`;
-                    } else if (mic.label && (mic.label.toLowerCase().includes('builtin') || mic.label.toLowerCase().includes('macbook'))) {
-                        option.innerHTML = `${mic.label} <span class="info-badge badge-builtin">Built-in</span>`;
-                    }
-                    
-                    micSelect.appendChild(option);
-                });
-                
-                micSelect.disabled = false;
-            } catch (err) {
-                console.error('Error loading microphones:', err);
-                const option = document.createElement('option');
-                option.value = '';
-                option.textContent = 'Error loading microphones';
-                option.disabled = true;
-                micSelect.appendChild(option);
-                throw err;
-            }
-        }
-
-        function initChart() {
-            const ctx = document.getElementById('splChart').getContext('2d');
+    <!-- Logs & Export -->
+    <div class="card logs-wrapper">
+        <div>
+            <h2>Real-Time Logs & Export</h2>
             
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: chartLabels,
-                    datasets: [
-                        {
-                            label: 'Instant SPL',
-                            data: chartDataInstant,
-                            borderColor: 'rgba(233, 69, 96, 1)',
-                            backgroundColor: 'rgba(233, 69, 96, 0.1)',
-                            borderWidth: 2,
-                            pointRadius: 0,
-                            tension: 0.1
-                        },
-                        {
-                            label: '1 Min Average',
-                            data: chartData1Min,
-                            borderColor: 'rgba(78, 204, 163, 1)',
-                            backgroundColor: 'rgba(78, 204, 163, 0.1)',
-                            borderWidth: 2,
-                            pointRadius: 0,
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Peak (1min)',
-                            data: chartDataPeak,
-                            borderColor: 'rgba(255, 193, 7, 1)',
-                            backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                            borderWidth: 2,
-                            pointRadius: 0,
-                            tension: 0.1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            min: 0,
-                            max: 120,
-                            title: {
-                                display: true,
-                                text: 'SPL (dB)'
-                            },
-                            ticks: {
-                                color: '#a0a0a0'
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Time'
-                            },
-                            ticks: {
-                                color: '#a0a0a0',
-                                maxTicksLimit: 10
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#eaeaea'
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.dataset.label}: ${context.raw} dB`;
-                                }
-                            }
-                        }
-                    }
+            <!-- Export Tools -->
+            <div class="export-bar">
+                <button id="exportCsvBtn" class="export-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Download CSV
+                </button>
+                
+                <input type="text" id="webhookUrl" placeholder="https://your-webhook-api-url.com/endpoint" style="flex: 1;">
+                
+                <button id="sendCloudBtn" class="export-btn" style="background: var(--info);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    Send to API
+                </button>
+            </div>
+
+            <table>
+                <colgroup><col style="width: 25%;"><col style="width: 35%;"><col style="width: 20%;"><col style="width: 20%;"></colgroup>
+                <thead><tr><th>Timestamp</th><th>Device Name</th><th>SPL (1s Leq)</th><th>Peak SPL (1s)</th></tr></thead>
+                <tbody id="logTableBody">
+                    <tr><td colspan="4" style="color: var(--text-muted); text-align: center; padding: 30px;">Waiting for measurement data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="pagination-controls">
+            <span class="page-info" id="pageInfo">0 Records</span>
+            <div class="pagination-btn-group">
+                <button class="page-btn" id="btnFirst" disabled>&laquo; First</button>
+                <button class="page-btn" id="btnPrev" disabled>&lsaquo; Prev</button>
+                <button class="page-btn" id="btnNext" disabled>Next &rsaquo;</button>
+                <button class="page-btn" id="btnLast" disabled>Last &raquo;</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- THEME MANAGEMENT ---
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeText = document.getElementById('themeText');
+    const rootEl = document.documentElement;
+
+    function setTheme(theme) {
+        rootEl.setAttribute('data-theme', theme);
+        localStorage.setItem('spl-theme', theme);
+        themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        themeText.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+    }
+    setTheme(localStorage.getItem('spl-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    themeToggle.addEventListener('click', () => setTheme(rootEl.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+    // --- AUDIO WORKLET ---
+    const workletCode = `
+    class SPLProcessor extends AudioWorkletProcessor {
+        constructor() { super(); this.sumRms2 = 0; this.peak = 0; this.samples = 0; this.updateInterval = 4800; }
+        process(inputs) {
+            const input = inputs[0];
+            if (input && input.length > 0) {
+                const channelData = input[0]; 
+                for (let i = 0; i < channelData.length; i++) {
+                    const val = channelData[i];
+                    this.sumRms2 += val * val;
+                    const absVal = Math.abs(val);
+                    if (absVal > this.peak) this.peak = absVal;
                 }
+                this.samples += channelData.length;
+                if (this.samples >= this.updateInterval) {
+                    this.port.postMessage({ rms2: this.sumRms2 / this.samples, peak: this.peak });
+                    this.sumRms2 = 0; this.peak = 0; this.samples = 0;
+                }
+            }
+            return true;
+        }
+    }
+    registerProcessor('spl-processor', SPLProcessor);`;
+
+    // --- VARIABLES ---
+    let audioCtx = null, micStream = null, splNode = null, updateIntervalId = null;
+    let activeMicName = "Unknown Device", uploadedSerno = null;
+    let history = [], currentSecondRms2Sum = 0, currentSecondPeak = 0, updatesInSecond = 0;
+    const rowsPerPage = 10; let currentPage = 1;
+
+    // --- DOM Elements ---
+    const micSelect = document.getElementById('micSelect'), calibOffsetInput = document.getElementById('calibOffset');
+    const startBtn = document.getElementById('startBtn'), stopBtn = document.getElementById('stopBtn'), clearBtn = document.getElementById('clearBtn');
+    const statusDiv = document.getElementById('status'), logTableBody = document.getElementById('logTableBody'), pageInfo = document.getElementById('pageInfo');
+    const uploadCalBtn = document.getElementById('uploadCalBtn'), calFileInput = document.getElementById('calFileInput');
+    const btnFirst = document.getElementById('btnFirst'), btnPrev = document.getElementById('btnPrev'), btnNext = document.getElementById('btnNext'), btnLast = document.getElementById('btnLast');
+    
+    // Export Elements
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    const sendCloudBtn = document.getElementById('sendCloudBtn');
+    const webhookUrlInput = document.getElementById('webhookUrl');
+
+    // --- INITIALIZATION ---
+    async function initMics() {
+        try {
+            const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            micSelect.innerHTML = '';
+            devices.filter(d => d.kind === 'audioinput').forEach((mic, i) => {
+                const opt = document.createElement('option');
+                opt.value = mic.deviceId;
+                opt.text = mic.label || `Microphone ${i + 1} [${mic.deviceId ? mic.deviceId.substring(0,4) : 'SYS'}]`;
+                micSelect.appendChild(opt);
             });
-        }
+            tempStream.getTracks().forEach(t => t.stop());
+        } catch (err) { micSelect.innerHTML = '<option>Permission denied</option>'; }
+    }
 
-        function setupEventListeners() {
-            startBtn.addEventListener('click', startMeasurement);
-            stopBtn.addEventListener('click', stopMeasurement);
-        }
+    // --- CALIBRATION FILE ---
+    uploadCalBtn.addEventListener('click', () => calFileInput.click());
+    calFileInput.addEventListener('change', async (e) => {
+        if (!e.target.files[0]) return;
+        const text = await e.target.files[0].text();
+        const sensMatch = text.match(/Sens(?: Factor)?\s*=\s*([+-]?[\d\.]+)\s*dB/i);
+        const sernoMatch = text.match(/SERNO:\s*(\d+)/i);
+        
+        if (sensMatch) {
+            calibOffsetInput.value = (100 - parseFloat(sensMatch[1])).toFixed(2);
+            uploadedSerno = sernoMatch ? sernoMatch[1] : null;
+            alert(`Calibration Applied!\nOffset: ${calibOffsetInput.value} dB` + (uploadedSerno ? `\nSerial: ${uploadedSerno}` : ''));
+        } else alert("Invalid UMIK file.");
+        calFileInput.value = '';
+    });
 
-        // ============================================
-        // Audio Processing
-        // ============================================
-        async function startMeasurement() {
-            if (!micSelect.value) {
-                alert('Please select a microphone first.');
-                return;
-            }
+    // --- UTILS ---
+    function getOffset() { return parseFloat(calibOffsetInput.value) || 0; }
+    function formatDB(val) { return (!isFinite(val) || val < -100) ? "--- dB" : val.toFixed(1) + " dB"; }
 
-            try {
-                // Clean up any existing streams
-                stopMeasurement();
-
-                // Create new audio context
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                
-                // Get user media
-                mediaStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        deviceId: { exact: micSelect.value },
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false
-                    }
-                });
-
-                // Create analyser
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = CONFIG.fftSize;
-                analyser.smoothingTimeConstant = CONFIG.smoothingTimeConstant;
-
-                // Connect microphone to analyser
-                microphone = audioContext.createMediaStreamSource(mediaStream);
-                microphone.connect(analyser);
-
-                // Start processing
-                startProcessing();
-                
-                // Update UI
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
-                statusEl.textContent = 'Measuring...';
-                statusEl.className = 'status connected';
-                
-                console.log('Measurement started successfully');
-            } catch (err) {
-                console.error('Error starting measurement:', err);
-                statusEl.textContent = `Error: ${err.message}`;
-                statusEl.className = 'status error';
-                
-                // Re-enable start button after error
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-                
-                // Show user-friendly error
-                let errorMsg = 'Error starting measurement';
-                if (err.name === 'NotAllowedError') {
-                    errorMsg = 'Microphone access denied. Please grant microphone permissions.';
-                } else if (err.name === 'NotFoundError') {
-                    errorMsg = 'No microphone found. Please connect a microphone.';
-                } else if (err.message.includes('deviceId')) {
-                    errorMsg = 'Selected microphone not available. Please try another.';
-                }
-                alert(errorMsg);
-            }
-        }
-
-        function stopMeasurement() {
-            // Cancel animation frame
-            if (rafId) {
-                cancelAnimationFrame(rafId);
-                rafId = null;
-            }
-
-            // Stop media stream
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => {
-                    try {
-                        track.stop();
-                    } catch (e) {
-                        console.warn('Error stopping track:', e);
-                    }
-                });
-                mediaStream = null;
-            }
-
-            // Close audio context
-            if (audioContext) {
-                audioContext.close().catch(e => {
-                    console.warn('Error closing audio context:', e);
-                });
-                audioContext = null;
-            }
-
-            // Update UI
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
-            statusEl.textContent = 'Stopped';
-            statusEl.className = 'status disconnected';
+    // --- CORE AUDIO logic ---
+    async function startMeasurement() {
+        if (audioCtx) stopMeasurement();
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             
-            console.log('Measurement stopped');
-        }
-
-        function startProcessing() {
-            const timeDomainData = new Uint8Array(analyser.frequencyBinCount);
-
-            let lastUpdate = 0;
-            const updateFrequency = CONFIG.updateInterval;
-
-            function processFrame(timestamp) {
-                if (!audioContext || audioContext.state === 'closed') {
-                    return;
-                }
-
-                try {
-                    // Get time domain data
-                    analyser.getByteTimeDomainData(timeDomainData);
-                    
-                    // Calculate RMS and SPL
-                    const spl = calculateSPL(timeDomainData);
-                    const now = new Date();
-                    
-                    // Update at specified interval
-                    if (timestamp - lastUpdate >= updateFrequency) {
-                        updateReadings(spl, now);
-                        lastUpdate = timestamp;
-                    }
-
-                    rafId = requestAnimationFrame(processFrame);
-                } catch (err) {
-                    console.error('Error in processFrame:', err);
-                    // Stop processing on error
-                    stopMeasurement();
-                    statusEl.textContent = 'Error processing audio';
-                    statusEl.className = 'status error';
-                    startBtn.disabled = false;
-                }
-            }
-
-            rafId = requestAnimationFrame(processFrame);
-        }
-
-        function calculateSPL(timeDomainData) {
-            // Convert to Float32 for proper calculation
-            const floatData = new Float32Array(timeDomainData.length);
-            for (let i = 0; i < timeDomainData.length; i++) {
-                floatData[i] = (timeDomainData[i] - 128) / 128.0;
-            }
-
-            // Calculate RMS
-            let sumSquares = 0;
-            for (let i = 0; i < floatData.length; i++) {
-                sumSquares += floatData[i] * floatData[i];
-            }
-            const meanSquares = sumSquares / floatData.length;
-            const rms = Math.sqrt(meanSquares);
-
-            // Calculate dBFS
-            let dbfs;
-            if (rms > 0) {
-                dbfs = 20 * Math.log10(rms);
-            } else {
-                dbfs = -Infinity;
-            }
+            let baseName = micSelect.options[micSelect.selectedIndex]?.text || "Unknown";
+            activeMicName = uploadedSerno ? `${baseName.split('[')[0].trim()} [SN: ${uploadedSerno}]` : baseName;
             
-            // Get calibration offset based on selected mic
-            const selectedMic = micSelect.options[micSelect.selectedIndex];
-            const isUmik = selectedMic && selectedMic.textContent.toLowerCase().includes('umik');
-            const calibrationOffset = isUmik ? CONFIG.calibration.umik1.offset : CONFIG.calibration.default.offset;
-            
-            // Convert to SPL
-            let spl = dbfs + calibrationOffset;
-            
-            // Clamp to reasonable range
-            spl = Math.max(0, Math.min(140, spl));
-            
-            // Apply A-weighting approximation
-            spl = applyAWeighting(spl);
-            
-            return Math.round(spl * 10) / 10;
-        }
+            micStream = await navigator.mediaDevices.getUserMedia({
+                audio: { deviceId: micSelect.value ? { exact: micSelect.value } : undefined, echoCancellation: false, autoGainControl: false, noiseSuppression: false }
+            });
 
-        function applyAWeighting(spl) {
-            // A-weighting approximation
-            // This is a simplified version - real A-weighting requires FFT
-            return spl - 2;
-        }
-
-        // ============================================
-        // Data Management
-        // ============================================
-        function updateReadings(spl, timestamp) {
-            const reading = {
-                timestamp: timestamp,
-                instant: spl,
-                oneMinAvg: null,
-                oneHrAvg: null,
-                eightHrAvg: null,
-                peak: spl
+            await audioCtx.audioWorklet.addModule('data:application/javascript;charset=utf-8,' + encodeURIComponent(workletCode));
+            splNode = new AudioWorkletNode(audioCtx, 'spl-processor');
+            
+            splNode.port.onmessage = (e) => {
+                const { rms2, peak } = e.data, offset = getOffset();
+                updateAggregateRowUI('row-instant', 10 * Math.log10(rms2) + offset, 20 * Math.log10(peak) + offset, new Date().toLocaleTimeString());
+                currentSecondRms2Sum += rms2; if (peak > currentSecondPeak) currentSecondPeak = peak; updatesInSecond++;
             };
 
-            // Add to all readings
-            readings.push(reading);
-            
-            // Add to time-specific buffers
-            oneMinReadings.push(reading);
-            oneHourReadings.push(reading);
-            eightHourReadings.push(reading);
+            audioCtx.createMediaStreamSource(micStream).connect(splNode);
+            updateIntervalId = setInterval(commitSecondToHistory, 1000);
 
-            // Clean up old readings
-            const oneMinAgo = new Date(timestamp.getTime() - 60 * 1000);
-            const oneHrAgo = new Date(timestamp.getTime() - 60 * 60 * 1000);
-            const eightHrAgo = new Date(timestamp.getTime() - 8 * 60 * 60 * 1000);
+            startBtn.disabled = true; stopBtn.disabled = false;
+            statusDiv.textContent = "Measuring..."; statusDiv.classList.add("active");
+        } catch (err) { alert('Error: ' + err.message); }
+    }
 
-            // Filter one minute readings
-            const oneMinIndex = oneMinReadings.findIndex(r => r.timestamp >= oneMinAgo);
-            if (oneMinIndex > 0) {
-                oneMinReadings.splice(0, oneMinIndex);
-            }
-            
-            // Filter one hour readings (check every 10 readings to reduce overhead)
-            if (readings.length % 10 === 0) {
-                const oneHrIndex = oneHourReadings.findIndex(r => r.timestamp >= oneHrAgo);
-                if (oneHrIndex > 0) {
-                    oneHourReadings.splice(0, oneHrIndex);
-                }
-            }
-            
-            // Filter eight hour readings (check every 60 readings)
-            if (readings.length % 60 === 0) {
-                const eightHrIndex = eightHourReadings.findIndex(r => r.timestamp >= eightHrAgo);
-                if (eightHrIndex > 0) {
-                    eightHourReadings.splice(0, eightHrIndex);
-                }
-            }
+    function stopMeasurement() {
+        if (updateIntervalId) clearInterval(updateIntervalId);
+        if (splNode) splNode.disconnect();
+        if (micStream) micStream.getTracks().forEach(t => t.stop());
+        if (audioCtx) { audioCtx.close(); audioCtx = null; }
+        startBtn.disabled = false; stopBtn.disabled = true;
+        statusDiv.textContent = "Stopped"; statusDiv.classList.remove("active");
+    }
 
-            // Calculate averages using energy-based Leq
-            reading.oneMinAvg = calculateLeq(oneMinReadings);
-            reading.oneHrAvg = calculateLeq(oneHourReadings);
-            reading.eightHrAvg = calculateLeq(eightHourReadings);
+    function clearData() {
+        history = []; currentSecondRms2Sum = 0; currentSecondPeak = 0; updatesInSecond = 0; currentPage = 1;
+        ['row-instant', 'row-1m', 'row-1h', 'row-8h'].forEach(id => updateAggregateRowUI(id, -Infinity, -Infinity, '--:--:--'));
+        renderLogs();
+    }
 
-            // Update peaks
-            const oneMinAgoForPeak = new Date(timestamp.getTime() - 60 * 1000);
-            if (!peak1MinResetTime || timestamp >= peak1MinResetTime) {
-                // Reset 1-minute peak every minute
-                if (!peak1MinResetTime || timestamp >= new Date(peak1MinResetTime.getTime() + 60 * 1000)) {
-                    peak1Min = spl;
-                    peak1MinResetTime = timestamp;
-                } else {
-                    peak1Min = Math.max(peak1Min, spl);
-                }
-            } else {
-                peak1Min = Math.max(peak1Min, spl);
-            }
-            peakAll = Math.max(peakAll, spl);
+    function commitSecondToHistory() {
+        if (updatesInSecond === 0) return;
+        const now = new Date();
+        const isAtLastPage = (currentPage === Math.max(1, Math.ceil(history.length / rowsPerPage)));
 
-            // Round values
-            reading.oneMinAvg = Math.round(reading.oneMinAvg * 10) / 10;
-            reading.oneHrAvg = Math.round(reading.oneHrAvg * 10) / 10;
-            reading.eightHrAvg = Math.round(reading.eightHrAvg * 10) / 10;
-            reading.peak = Math.round(peak1Min * 10) / 10;
+        history.push({ rms2: currentSecondRms2Sum / updatesInSecond, peak: currentSecondPeak, timestamp: now, micLabel: activeMicName });
+        if (history.length > 28800) history.shift();
 
-            // Keep only recent readings for display
-            if (readings.length > CONFIG.maxHistory) {
-                readings.shift();
-            }
+        currentSecondRms2Sum = 0; currentSecondPeak = 0; updatesInSecond = 0;
+        updateAggregates(now.toLocaleTimeString());
 
-            // Update UI
-            updateUI(reading);
-            
-            // Update chart
-            updateChart(reading);
-        }
+        if (isAtLastPage) currentPage = Math.max(1, Math.ceil(history.length / rowsPerPage));
+        renderLogs();
+    }
 
-        function calculateLeq(readingsArray) {
-            if (readingsArray.length === 0) return 0;
-            
-            // Energy average for Leq
-            // Leq = 10 * log10( (1/n) * sum(10^(Li/10)) )
-            let sumEnergy = 0;
-            for (const r of readingsArray) {
-                sumEnergy += Math.pow(10, r.instant / 10);
-            }
-            const avgEnergy = sumEnergy / readingsArray.length;
-            const leq = 10 * Math.log10(avgEnergy);
-            
-            return isFinite(leq) ? leq : 0;
-        }
+    function updateAggregates(timeStr) {
+        calcAgg('row-1m', 60, timeStr); calcAgg('row-1h', 3600, timeStr); calcAgg('row-8h', 28800, timeStr);  
+    }
 
-        // ============================================
-        // UI Updates
-        // ============================================
-        function updateUI(reading) {
-            // Format timestamp
-            const timeStr = reading.timestamp.toLocaleTimeString('en-GB', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+    function calcAgg(rowId, secs, timeStr) {
+        if (!history.length) return;
+        const slice = history.slice(-secs);
+        let sRms = 0, mPeak = 0;
+        slice.forEach(s => { sRms += s.rms2; if(s.peak > mPeak) mPeak = s.peak; });
+        const off = getOffset();
+        updateAggregateRowUI(rowId, 10 * Math.log10(sRms/slice.length) + off, 20 * Math.log10(mPeak) + off, timeStr);
+    }
 
-            // Update current reading
-            currentSplEl.textContent = `${reading.instant} dB`;
-            currentTimestampEl.textContent = timeStr;
+    function updateAggregateRowUI(id, l, p, t) {
+        const r = document.getElementById(id); if(!r) return;
+        r.querySelector('.leq').textContent = formatDB(l); r.querySelector('.db-val:not(.leq)').textContent = formatDB(p); r.querySelector('.time').textContent = t;
+    }
 
-            // Update gauge
-            const gaugePercent = Math.min(100, Math.max(0, reading.instant * 1.2));
-            gaugeFillEl.style.width = `${gaugePercent}%`;
-            
-            // Change gauge color based on level
-            if (reading.instant > 100) {
-                gaugeFillEl.style.background = 'var(--danger)';
-            } else if (reading.instant > 80) {
-                gaugeFillEl.style.background = 'var(--warning)';
-            } else if (reading.instant > 60) {
-                gaugeFillEl.style.background = 'var(--success)';
-            } else {
-                gaugeFillEl.style.background = 'var(--accent)';
-            }
+    // --- LOG RENDERING ---
+    function renderLogs() {
+        const total = history.length, totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+        if (currentPage < 1) currentPage = 1; if (currentPage > totalPages) currentPage = totalPages;
 
-            // Update stats
-            statInstantEl.textContent = `${reading.instant} dB`;
-            stat1MinEl.textContent = `${reading.oneMinAvg} dB`;
-            stat1HrEl.textContent = `${reading.oneHrAvg} dB`;
-            stat8HrEl.textContent = `${reading.eightHrAvg} dB`;
-            statPeak1MinEl.textContent = `${Math.round(peak1Min * 10) / 10} dB`;
-            statPeakAllEl.textContent = `${Math.round(peakAll * 10) / 10} dB`;
+        pageInfo.innerHTML = `Page <b>${currentPage}</b> of ${totalPages} &nbsp;|&nbsp; Total: ${total}s`;
+        btnFirst.disabled = btnPrev.disabled = currentPage === 1;
+        btnNext.disabled = btnLast.disabled = currentPage === totalPages || total === 0;
 
-            // Update table
-            updateTable(reading, timeStr);
-        }
+        if (total === 0) return logTableBody.innerHTML = '<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:30px;">Waiting for data...</td></tr>';
 
-        function updateTable(reading, timeStr) {
-            // Create new row
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${timeStr}</td>
-                <td class="value-instant">${reading.instant} dB</td>
-                <td class="value-1min">${reading.oneMinAvg} dB</td>
-                <td class="value-1hr">${reading.oneHrAvg} dB</td>
-                <td class="value-8hr">${reading.eightHrAvg} dB</td>
-                <td class="value-peak">${reading.peak} dB</td>
-            `;
+        const pageData = history.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+        const off = getOffset();
+        
+        let html = pageData.map(e => `<tr><td style="color:var(--text-muted);">${e.timestamp.toLocaleTimeString()}</td><td class="mic-label" title="${e.micLabel}">${e.micLabel}</td><td class="db-val leq">${formatDB(10*Math.log10(e.rms2)+off)}</td><td class="db-val">${formatDB(20*Math.log10(e.peak)+off)}</td></tr>`).join('');
+        for(let i=0; i < (rowsPerPage - pageData.length); i++) html += `<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>`;
+        logTableBody.innerHTML = html;
+    }
 
-            // Add to table
-            readingsBodyEl.insertBefore(row, readingsBodyEl.firstChild);
-
-            // Remove old rows if we have too many
-            while (readingsBodyEl.children.length > 50) {
-                readingsBodyEl.removeChild(readingsBodyEl.lastChild);
-            }
-
-            // Remove "no data" row if present
-            const noDataRow = readingsBodyEl.querySelector('tr td[colspan="6"]');
-            if (noDataRow) {
-                noDataRow.parentElement.remove();
-            }
-        }
-
-        function updateChart(reading) {
-            const timeStr = reading.timestamp.toLocaleTimeString('en-GB', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-
-            // Add formatted time string as label
-            chartLabels.push(timeStr);
-            chartDataInstant.push(reading.instant);
-            chartData1Min.push(reading.oneMinAvg);
-            chartDataPeak.push(peak1Min);
-
-            // Keep only last N points
-            const maxPoints = CONFIG.maxChartPoints;
-            if (chartLabels.length > maxPoints) {
-                chartLabels.shift();
-                chartDataInstant.shift();
-                chartData1Min.shift();
-                chartDataPeak.shift();
-            }
-
-            // Update chart data without re-rendering (more efficient)
-            chart.data.labels = chartLabels;
-            chart.data.datasets[0].data = chartDataInstant;
-            chart.data.datasets[1].data = chartData1Min;
-            chart.data.datasets[2].data = chartDataPeak;
-            chart.update('none');
-        }
-
-        // ============================================
-        // Utility Functions
-        // ============================================
-        function formatTime(date) {
-            return date.toLocaleTimeString('en-GB', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-        }
-
-        // ============================================
-        // Initialize on page load
-        // ============================================
-        document.addEventListener('DOMContentLoaded', init);
-
-        // Handle page visibility changes
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden && !stopBtn.disabled) {
-                // Optionally pause measurement when page is hidden
-                // stopMeasurement();
-            }
+    // --- DATA EXPORT FEATURES ---
+    
+    // 1. Download CSV
+    exportCsvBtn.addEventListener('click', () => {
+        if (history.length === 0) return alert("No data to export.");
+        
+        let csvRows = ["Timestamp,Device Name,SPL_Leq_dB,Peak_SPL_dB"];
+        const off = getOffset();
+        
+        history.forEach(e => {
+            const time = e.timestamp.toISOString();
+            const mic = `"${e.micLabel.replace(/"/g, '""')}"`;
+            const leq = (10 * Math.log10(e.rms2) + off).toFixed(2);
+            const peak = (20 * Math.log10(e.peak) + off).toFixed(2);
+            csvRows.push(`${time},${mic},${leq},${peak}`);
         });
 
-        // Clean up on page unload
-        window.addEventListener('beforeunload', () => {
-            stopMeasurement();
-        });
-    </script>
+        const blob = new Blob([csvRows.join("\n")], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `SPL_Logs_${new Date().getTime()}.csv`;
+        a.click(); URL.revokeObjectURL(url);
+    });
+
+    // 2. Send to Webhook/API
+    sendCloudBtn.addEventListener('click', async () => {
+        if (history.length === 0) return alert("No data to send.");
+        const url = webhookUrlInput.value.trim();
+        if (!url || !url.startsWith("http")) return alert("Please enter a valid HTTP/HTTPS Webhook URL.");
+        
+        const off = getOffset();
+        const payload = history.map(e => ({
+            timestamp: e.timestamp.toISOString(),
+            device: e.micLabel,
+            spl_leq: parseFloat((10 * Math.log10(e.rms2) + off).toFixed(2)),
+            spl_peak: parseFloat((20 * Math.log10(e.peak) + off).toFixed(2))
+        }));
+
+        sendCloudBtn.disabled = true;
+        const originalText = sendCloudBtn.innerHTML;
+        sendCloudBtn.innerHTML = "Sending...";
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if(response.ok) alert("Data successfully sent to API!");
+            else alert("Warning: API responded with status " + response.status);
+        } catch (err) {
+            alert("Failed to send: " + err.message + "\n\n(Check your console. Note: Some webhooks require CORS configuration to accept browser requests).");
+        }
+
+        sendCloudBtn.disabled = false;
+        sendCloudBtn.innerHTML = originalText;
+    });
+
+    // Pagination Listeners
+    btnFirst.addEventListener('click', () => { currentPage = 1; renderLogs(); });
+    btnPrev.addEventListener('click', () => { currentPage--; renderLogs(); });
+    btnNext.addEventListener('click', () => { currentPage++; renderLogs(); });
+    btnLast.addEventListener('click', () => { currentPage = Math.ceil(history.length / rowsPerPage); renderLogs(); });
+    startBtn.addEventListener('click', startMeasurement);
+    stopBtn.addEventListener('click', stopMeasurement);
+    clearBtn.addEventListener('click', clearData);
+    
+    window.addEventListener('load', () => { initMics(); renderLogs(); });
+</script>
 </body>
 </html>
